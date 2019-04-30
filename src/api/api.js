@@ -1,9 +1,13 @@
 import axios from 'axios';
-import router from '../router'
+// import router from '../routerManuaConfig'
+import router from '../router/index'
 import store from "../store";
 import Vue from 'vue';
 
 let base = '';
+
+// 请求延时
+axios.defaults.timeout = 10000
 
 var storeTemp = store;
 axios.interceptors.request.use(
@@ -31,6 +35,19 @@ axios.interceptors.response.use(
         return response;
     },
     error => {
+        // 超时请求处理
+        var originalRequest = error.config;
+        if(error.code == 'ECONNABORTED' && error.message.indexOf('timeout')!=-1 && !originalRequest._retry){
+
+            Vue.prototype.$message({
+                message: '请求超时！',
+                type: 'error'
+            });
+
+            originalRequest._retry = true
+            return null;
+        }
+
         if (error.response) {
             if (error.response.status == 401) {
                 var curTime = new Date()
@@ -81,6 +98,8 @@ axios.interceptors.response.use(
 export const requestLogin = params => {
     return axios.get(`${base}/api/login/jwttoken3.0`, {params: params}).then(res => res.data);
 };
+export const requestLoginMock = params => { return axios.post(`${base}/login`, params).then(res => res.data); };
+
 export const refreshToken = params => {
     return axios.get(`${base}/api/login/RefreshToken`, {params: params}).then(res => res.data);
 };
@@ -111,6 +130,9 @@ export const saveRefreshtime = params => {
          path: "/login",
          query: {redirect: router.currentRoute.fullPath}
      });
+
+      window.location.reload()
+
 };
 
 export const getUserByToken = params => {
@@ -217,4 +239,12 @@ export const addBug = params => {
 // 博客模块管理
 export const getBlogListPage = params => {
     return axios.get(`${base}/api/Blog`, {params: params});
+};
+export const removeBlog = params => {
+    return axios.delete(`${base}/api/Blog/delete`, {params: params});
+};
+
+// 日志
+export const getLogs = params => {
+    return axios.get(`${base}/api/Monitor/get`, {params: params});
 };
